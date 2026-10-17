@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quiz App</title>
+<style>
+:root{--bg:#f3f7f4;--card:#fff;--ink:#12261c;--mute:#5d7366;--line:#d5e2d9;--accent:#0f7a4f;--accent-ink:#fff;--ok:#1a8f4a;--okbg:#e0f4e8;--bad:#c23b3b;--badbg:#fbe5e5;--gold:#e8a620;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1a14;--card:#16271d;--ink:#e6f2ea;--mute:#8fa89a;--line:#27402f;--accent:#3fc189;--accent-ink:#06180f;--ok:#4cd387;--okbg:#14382a;--bad:#ef7b7b;--badbg:#3d1d1d}}
+:root[data-theme="dark"]{--bg:#0e1a14;--card:#16271d;--ink:#e6f2ea;--mute:#8fa89a;--line:#27402f;--accent:#3fc189;--accent-ink:#06180f;--ok:#4cd387;--okbg:#14382a;--bad:#ef7b7b;--badbg:#3d1d1d}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{background:var(--bg);color:var(--ink);font-family:"Nunito","Segoe UI",system-ui,sans-serif;line-height:1.5}
+main{max-width:620px;margin:0 auto;padding:24px 18px 40px}
+h1{font-size:2rem;margin:0 0 6px;letter-spacing:-.02em}
+h2{font-size:1.25rem;margin:0 0 16px;line-height:1.4}
+p.sub{color:var(--mute);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px}
+.topics{display:grid;gap:10px}
+button{font:inherit;cursor:pointer;color:inherit}
+button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.topic{display:flex;justify-content:space-between;align-items:center;width:100%;text-align:left;padding:16px 18px;background:var(--card);border:1px solid var(--line);border-radius:12px;font-weight:700;font-size:1.05rem}
+.topic small{color:var(--mute);font-weight:400}
+.topic:hover{border-color:var(--accent)}
+.bar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;color:var(--mute);font-weight:700;font-size:.95rem}
+.track{height:8px;background:var(--line);border-radius:99px;overflow:hidden;margin-bottom:20px}
+.fill{height:100%;background:var(--accent);width:0;transition:width .3s}
+.timer{font-variant-numeric:tabular-nums}
+.timer.low{color:var(--bad)}
+.opts{display:grid;gap:10px}
+.opt{width:100%;text-align:left;padding:14px 16px;border:2px solid var(--line);border-radius:12px;background:var(--card);font-size:1rem}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.ok{border-color:var(--ok);background:var(--okbg)}
+.opt.bad{border-color:var(--bad);background:var(--badbg)}
+.opt:disabled{cursor:default}
+.next,.primary{margin-top:18px;padding:13px 22px;background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;font-weight:800;font-size:1rem}
+.ghost{margin-top:18px;margin-left:8px;padding:12px 20px;background:transparent;border:2px solid var(--line);border-radius:12px;font-weight:700}
+.score{font-size:4rem;font-weight:800;line-height:1;margin:6px 0;color:var(--accent)}
+.review{margin-top:22px;display:grid;gap:8px;text-align:left}
+.rv{padding:10px 14px;border-radius:10px;font-size:.95rem;border:1px solid var(--line)}
+.rv.ok{background:var(--okbg)}.rv.bad{background:var(--badbg)}
+.hide{display:none}
+@media (prefers-reduced-motion:reduce){.fill{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<section id="home">
+  <h1>Quiz App</h1>
+  <p class="sub">Pick a topic. Answer 6 questions, 20 seconds each.</p>
+  <div class="topics" id="topics"></div>
+</section>
+
+<section id="play" class="hide">
+  <div class="bar"><span id="count"></span><span class="timer" id="timer">20s</span></div>
+  <div class="track"><div class="fill" id="fill"></div></div>
+  <div class="card">
+    <h2 id="q"></h2>
+    <div class="opts" id="opts"></div>
+    <button class="next hide" id="next">Next question</button>
+  </div>
+</section>
+
+<section id="end" class="hide">
+  <div class="card" style="text-align:center">
+    <p class="sub" style="margin:0">Your score</p>
+    <div class="score" id="score"></div>
+    <p id="msg" style="font-weight:700;margin:0"></p>
+    <div class="review" id="review"></div>
+    <button class="primary" id="again">Play again</button><button class="ghost" id="home-btn">Change topic</button>
+  </div>
+</section>
+</main>
+
+<script>
+const DATA = {
+  "HTML": [
+    ["What does HTML stand for?",["Hyper Text Markup Language","High Tech Modern Language","Hyper Transfer Markup Link","Home Tool Markup Language"],0],
+    ["Which tag creates the largest heading?",["<h6>","<head>","<h1>","<title>"],2],
+    ["Which tag is used for a hyperlink?",["<link>","<a>","<href>","<url>"],1],
+    ["Which attribute gives alternate text for an image?",["title","src","alt","name"],2],
+    ["Which tag makes an ordered (numbered) list?",["<ul>","<ol>","<li>","<dl>"],1],
+    ["Which tag holds the page content shown in the browser?",["<head>","<meta>","<body>","<html>"],2]
+  ],
+  "CSS": [
+    ["What does CSS stand for?",["Creative Style Sheets","Cascading Style Sheets","Computer Style Syntax","Colorful Style Sheets"],1],
+    ["Which property changes text color?",["font-color","text-style","color","fill"],2],
+    ["Which property sets the space inside an element's border?",["margin","padding","gap","spacing"],1],
+    ["Which display value enables a flexible row layout?",["block","inline","flex","table-cell"],2],
+    ["How do you select an element with id \"box\"?",[".box","#box","*box","box:id"],1],
+    ["Which unit is relative to the root font size?",["px","em","rem","pt"],2]
+  ],
+  "JavaScript": [
+    ["Which keyword declares a constant?",["var","let","const","static"],2],
+    ["What does === check?",["Value only","Type only","Value and type","Reference only"],2],
+    ["Which method adds an item to the end of an array?",["push()","pop()","shift()","add()"],0],
+    ["What is typeof null?",["null","undefined","object","number"],2],
+    ["Which method turns JSON text into an object?",["JSON.stringify()","JSON.parse()","JSON.object()","JSON.convert()"],1],
+    ["Which function runs code after a delay?",["setTimeout()","wait()","delay()","sleep()"],0]
+  ]
+};
+const TIME = 20;
+const $ = id => document.getElementById(id);
+let topic, qs, i, score, answers, t, left;
+
+const show = id => ["home","play","end"].forEach(s => $(s).classList.toggle("hide", s !== id));
+const shuffle = a => a.map(x => [Math.random(), x]).sort((a, b) => a[0] - b[0]).map(x => x[1]);
+
+$("topics").innerHTML = Object.keys(DATA).map(k =>
+  `<button class="topic" data-t="${k}">${k}<small>${DATA[k].length} questions</small></button>`).join("");
+$("topics").onclick = e => { const b = e.target.closest(".topic"); if (b) start(b.dataset.t); };
+
+function start(name) {
+  topic = name;
+  qs = shuffle(DATA[name]).map(([q, o, c]) => {
+    const right = o[c], opts = shuffle(o);
+    return { q, opts, a: opts.indexOf(right) };
+  });
+  i = 0; score = 0; answers = [];
+  show("play"); render();
+}
+
+function render() {
+  const q = qs[i];
+  $("count").textContent = `${topic}: question ${i + 1} of ${qs.length}`;
+  $("fill").style.width = (i / qs.length * 100) + "%";
+  $("q").textContent = q.q;
+  $("opts").innerHTML = q.opts.map((o, n) => `<button class="opt" data-n="${n}"></button>`).join("");
+  [...$("opts").children].forEach((b, n) => b.textContent = q.opts[n]);
+  $("next").classList.add("hide");
+  $("next").textContent = i === qs.length - 1 ? "See result" : "Next question";
+  left = TIME; tick(); clearInterval(t);
+  t = setInterval(() => { left--; tick(); if (left <= 0) pick(-1); }, 1000);
+}
+
+function tick() {
+  $("timer").textContent = left + "s";
+  $("timer").classList.toggle("low", left <= 5);
+}
+
+function pick(n) {
+  clearInterval(t);
+  const q = qs[i];
+  if (n === q.a) score++;
+  answers.push({ q: q.q, chosen: n === -1 ? "No answer (time up)" : q.opts[n], right: q.opts[q.a], ok: n === q.a });
+  [...$("opts").children].forEach((b, k) => {
+    b.disabled = true;
+    if (k === q.a) b.classList.add("ok");
+    else if (k === n) b.classList.add("bad");
+  });
+  $("next").classList.remove("hide");
+  $("next").focus();
+}
+
+$("opts").onclick = e => { const b = e.target.closest(".opt"); if (b && !b.disabled) pick(+b.dataset.n); };
+$("next").onclick = () => { i++; i < qs.length ? render() : finish(); };
+
+function finish() {
+  show("end");
+  $("score").textContent = `${score}/${qs.length}`;
+  const p = score / qs.length;
+  $("msg").textContent = p === 1 ? "Perfect score. Well done!" : p >= .6 ? "Good work. Keep practising." : "Keep going. Try the topic again.";
+  $("review").innerHTML = "";
+  answers.forEach(a => {
+    const d = document.createElement("div");
+    d.className = "rv " + (a.ok ? "ok" : "bad");
+    d.textContent = a.q + " — " + (a.ok ? "Correct: " + a.right : "Your answer: " + a.chosen + ". Correct: " + a.right);
+    $("review").appendChild(d);
+  });
+}
+
+$("again").onclick = () => start(topic);
+$("home-btn").onclick = () => { clearInterval(t); show("home"); };
+</script>
+</body>
+</html>
